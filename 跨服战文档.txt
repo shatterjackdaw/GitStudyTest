@@ -1,0 +1,329 @@
+行军troop的状态和类型
+报名阶段：
+出发： status,100; type,100
+待命： status,101
+回家： status,2(正常回家的数值)
+
+战斗阶段:
+出发： status,1; type, 101
+回家： status,2
+
+
+# 测试用接口
+start_expedition
+req['d']= [cooling_duration, apply_duration, pre_duration, fight_first_duration, fight_rest_duration, fight_second_duration, settlement_duration]
+这个借口有两个作用：
+1.不管传参数与否，都会清理该玩家的报名队列，退还officer和units
+2.如果传参完整(7个参数)，重置跨服战各阶段时间，重新开启跨服战。
+
+
+# auth.login
+登录只显示变动部分
+{
+    "a": "auth.login",
+    "d": [0, {
+    	'expedition_status': 1, 	# 0冷却,1报名,2准备,3战斗,4结算
+    	'next_expedition_stage_time': 12312341241 	# 下一阶段时间
+        'expedition_apply_status': 0    # 0，未申请；1，已申请；2，参赛中
+    }]
+}
+
+# auth.expedition_login
+进入跨服战区域
+{
+    "a": "auth.expedition_login",
+    "d": [0, player_dict, map_items],
+}
+player_dict = {
+    'player_id': user_id,
+    "name": 'fasdfa',
+    "officer_level": 20,
+    "avatar": 1,
+    # 军团id
+    "alliance_id": str(alliance_id),
+    # 服务器id
+    "server_id": 1,
+    # 初始兵量
+    "units_init": [(104, 200), (104, 200), (104, 200), (104, 200), (104, 200), (104, 200)],
+    # 当前兵量
+    "units": [(104, 200), (104, 200), (104, 200), (104, 200), (104, 200), (104, 200)],
+    # 将
+    "officer": 12,
+    # 伤兵
+    "wounded": {},
+    # 部队状态
+    "troop_status": 0,
+    "pos": [1, 0],
+    # 远征金币
+    "excoin": 99,
+    "combat_power": 999,
+    "troop_percent": 100,
+    "troops": {str(troop["_id"]): troop for troop in troops},
+    "queues": {},
+}
+map_items = {
+    'y': y,
+    'x': x,
+    'info':  {
+	    "serial_number": serial_num,
+	    "name": "expedition_alliance",
+	    "level": 0,
+	    'server_id': 1,
+	    'alliance_id': str(ObjectId()),
+	    'hp': 100,
+	},
+    'type': PositionType.POSITION_TYPE_EXPEDITION_ALLIANCE, # int, 9
+}
+
+
+接口：
+报名阶段：
+#
+alliance_expedition_battle_info
+跨服战信息 
+applicants_list和my_alliance字段，只有在报名阶段才会有数据。
+my_alliance如果军团没报名，自然就没数据，就是None;如果军团排名不在前40，那么rank字段就是没有的。
+{
+    "a": 'alliance_expedition_battle_info',
+    "d": [0, {
+        'expedition_info': {
+		    # 该战区服涉及的服务器，服务器id的起始和结束
+		    'related_servers': {
+		        'start_id': 1,
+		        'end_id': 2
+		    },
+		    # 规定通过军团数量
+		    'alliance_num': expedition_obj['alliance_num'],
+		    # 战区服的服务器名称
+		    'war_server': expedition_obj['war_server_id'],
+		    # 下一阶段的开始时间
+		    'next_stage_time': Expedition.get_next_stage_time(),
+		    # 个人奖励，TODO：未定好数据格式
+		    'personal_reward': {},
+		    # 参赛的军团列表
+		    'applicants_list': [{
+		            'alliance_name': applicants['name'],
+		            'server_name': applicants['server_id'],
+		            'applicant_num': applicants['applicant_num'],
+		            'combat_power': applicants['combat_power']
+		        }],	
+		    # 我的军团，未参赛为None
+		    'my_alliance': {
+		            'rank': index + 1,    # 不在前40，那就没有rank字段
+		            'name': applicants['name'],
+		            'combat_power': applicants['combat_power']
+		        },
+		    # 个人是否已申请参赛. 0,未申请；1,已申请；2,参赛中
+		    # 'apply_status': apply_status 
+		},
+        'expedition_apply_status': 0    # 0,未申请；1,已申请；2,参赛中
+    }]
+}
+
+#
+get_expedition_applicants_list
+获取报名军团列表 
+参数同alliance_expedition_battle_info
+{
+    "a": get_expedition_applicants_list,
+    "d": [0, {
+        'expedition_info': {
+            'applicants_list': applicants_list,
+            'my_alliance': my_alliance
+        }
+    }]
+}
+
+#
+expedition_battle_apply
+跨服战参赛申请
+req['d']= [units, officer] 参考troop_send_to
+{
+    "a": 'expedition_battle_apply',
+    "d": [0, {
+	    "troops": {str(troop["_id"]): troop},
+	    "queues": {str(queue["_id"]): queue.to_client_obj()},
+	    "units": player["units"],
+	    "officer": player["officer"],
+	    'government': player.get('government'),
+	    'officer_speedup': officer_speedup,
+	}]
+}
+
+#
+expedition_alliance_check_applicants
+查看军团已报名玩家部队
+{
+    'a': ActionName.ACTION_EXPEDITION_ALLIANCE_CHECK_APPLICANTS,
+    'd': [0, {}, {
+        'alliance_troops': troop_list,	# 部队信息, list
+        'alliance_total_combat_power': total_combat_power, # 军团总战力, int
+        'troops_count': troops_count	# 参战玩家数量, int
+    }]
+}
+
+Ex:
+'alliance_troops'= [
+{u'name': u'hhh', u'combat_power': 999, 
+u'units': [[20, 40], [20, 40], [20, 40], [20, 40], [20, 40], [20, 40]], u'officer':12, u'general_level':12,
+u'player_level': 25, u'avatar': 1, u'player_id': u'589be726aac6e06b95195a82', u'_id': u'59cb4d12c3666ecfc49a7bd5'}
+]
+
+# 通知
+finish_expedition_staying
+军团战结束
+{
+    "a": 'finish_expedition_staying',
+    "d": [0, {
+        "queues": {
+            str(queue["_id"]): queue.to_client_obj(),
+            str(queue_id): REMOVE
+        },
+        "troops": {
+            str(troop["_id"]): troop
+        }
+    }]
+}
+
+#
+finish_send_troop
+跨服战报名队列结束，开始待命
+{
+    "a": 'finish_send_troop',
+    "d": [0, {
+        "troops": {str(troop_id): troop},
+        "queues": {
+            str(queue_id): REMOVE,
+            str(new_queue['_id']): new_queue.to_client_obj()
+        },
+    }]
+}
+
+# 废弃
+get_alliance_expedition_troop
+获取军团跨服战出兵舰队
+
+
+
+
+战斗阶段：
+#
+expedition_alliance_scouts
+侦查
+req['d'] = [x, y]
+{
+    'a': expedition_alliance_scouts,
+    'd': [0, {}, {
+        'alliance_info': alliance_pos,
+        'alliance_troops': alliance_troops,
+        'troops_count': troops_count
+    }]
+}
+
+#
+expedition_queue_speed_up
+队列加速
+req['d'] = [queue_id]
+
+{'a': 'expedition_queue_speed_up', 'd': [0, {
+    'excoin': player['excoin'], 
+}]}
+
+#
+expedition_units_heal_all
+修复全部伤兵
+
+{
+    "a": expedition_units_heal_all,
+    "d": [0, {
+        "queues": {str(queue["_id"]): queue},
+        "troop_status": player['troop_status']
+    }]
+}
+
+# 通知
+finish_units_heal_all
+兵全部修复完成
+{
+    "a": 'finish_units_heal_all',
+    "d": [0, {
+        "queues": {
+            str(queue_id): REMOVE,
+        },
+        "troop_status": player['troop_status'],
+        "units": player['units_init'],
+        "wounded": player['wounded'],
+    }]
+}
+
+#
+expedition_troop_send_to  
+派出队列
+req['d'] = [x, y]
+返回：
+{
+    "a": 'expedition_troop_send_to',
+    "d": [0, {
+        "troops": {str(troop["_id"]): troop},
+        "queues": {str(queue["_id"]): queue},
+        "troop_status": troop_status
+        }]
+}
+
+# 通知
+la
+行军线添加
+lc
+行军线变动 
+
+# 通知
+finish_back_home  
+行军线到家
+{
+    "a": "finish_back_home",
+    "d": [0, {
+        "queues": {str(queue_id): REMOVE},
+        "troops": {str(troop_id): REMOVE},
+        "wounded": player['wounded'],
+        "units": player['units'],
+        "troop_status": player['troop_status'],
+    }]
+}
+
+# 通知
+finish_expedition_send_troop  
+队列完成，近似于finish_send_troop
+{
+    "a": 'finish_expedition_send_troop',
+    "d": [0, {
+        "troops": {str(troop_id): troop},
+        "queues": {
+            str(queue_id): REMOVE,
+            str(new_queue['_id']): new_queue
+        },
+    }]
+}
+
+# 全服通知
+expedition_alliances_info 
+军团据点被攻击后，发送该通知，有血量变化和其他据点数据
+
+{
+    "a": 'expedition_alliances_info',
+    "d": [0, {}, {
+            alliance_pos['info']['alliance_id']: alliance_pos
+        }]
+}
+alliance_pos: {
+    'y': y,
+    'x': x,
+    'info':  {
+	    "serial_number": serial_num,
+	    "name": "expedition_alliance",
+	    "level": 0,
+	    'server_id': 1,
+	    'alliance_id': str(ObjectId()),
+	    'hp': 100,
+	},
+    'type': PositionType.POSITION_TYPE_EXPEDITION_ALLIANCE, # int, 9
+}
