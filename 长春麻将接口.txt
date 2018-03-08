@@ -1,0 +1,349 @@
+
+配置：
+
+游戏状态(暂定,后面补齐)：
+'playing'   游戏中
+
+玩家状态(暂定,后面补齐)：
+'notReady'  未准备
+'ready'     准备中
+
+方位：东南西北
+DONG = 0
+NAN = 1
+XI = 2
+BEI = 3
+
+各种操作：胡、听、杠、碰、补杠、吃、点炮、出牌、过、等待
+HU = 'hu'           
+TING = 'ting'
+GANG = 'gang'
+PENG = 'peng'
+BUGANG = 'bugang'
+CHI = 'chi'
+DIANPAO = 'dianpao'
+CHUPAI = 'chupai'
+GUO = 'guo'
+
+WAIT = 'wait'
+
+基础牌型
+BASE_PAI = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9,              # 万
+    11, 12, 13, 14, 15, 16, 17, 18, 19,     # 筒
+    21, 22, 23, 24, 25, 26, 27, 28, 29,     # 条
+    31, 32, 33, 34, 35, 36, 37              # 风箭
+]       # 1-9万筒条，东南西北中发白，各四张
+
+
+套牌类型(pai_class字段)：
+PENG = 'peng'
+CHI = 'chi'
+# 杠牌
+GANG_MING = 'ming_gang'             # 明杠
+GANG_AN = 'an_gang'                 # 暗杠
+GANG_XUANFENG = 'xuanfeng_gang'     # 旋风杠, 首次出牌可杠，东+南+西+北起杠，补一张风牌多算一个杠
+GANG_XI = 'xi_gang'                 # 喜杠, 首次出牌可杠，中+发+白起杠，补一张字牌多算一个杠
+GANG_YAO = 'yao_gang'               # 幺蛋(杠), 首次出牌可杠，幺鸡+幺饼+幺万起杠，补一张幺牌多算一个杠
+GANG_JIU = 'jiu_gang'               # 九蛋(杠), 首次出牌可杠，九鸡+九饼+九万起杠，补一张九牌多算一个杠
+
+
+
+
+关于网络接口：
+
+注意： 所有接口名，包括推送和请求。名称前都是'ChangChunMJ.'。如玩家准备'gameReady'，即'ChangChunMJ.gameReady'。
+
+请求：
+
+1. 听牌： operateTing
+参数： req['d'] = [13]     # req['d'][0]为听哪张牌
+2. 杠碰吃过： operateGangPengChiGuo
+参数： req['d'] = ['gang', [31, 32, 33, 34]]       # [0]为操作吃碰杠，[1]为所选择的牌型，暗杠和吃需要传参数，其他不需要
+3. 补杠： operateBugang
+参数： req['d'] = [31, [31, 32, 33, 34]]       # [0]为要补杠哪张牌，[1]为目标套牌即补杠到哪套牌中
+4. 出牌： operateChupai
+参数： req['d'] = [31]     # [0]为出哪张牌
+
+
+推送：
+
+1. 开始游戏： gameStart
+2. 开始游戏后庄家的牌情况(蛋、杠、听、可出牌+杠的组合)： mopaiAfterStart
+数据:
+{'game': {  // 牌局数据
+    'players': {
+        'p1': {
+            # 操作，如 点炮，胡，听，杠，补杠，碰，吃
+            'operations': {
+                    Operations.CHUPAI: {'operate': Operations.CHUPAI},
+                    Operations.GANG: {'operate': Operations.GANG, 'selections': [[31,32,33], [31,32,34]], 'source_player_id': 'p1'},
+                    Operations.TING: {'operate': Operations.TING, 'selections': [{'pai_chu': 13, 'pai_hu': [{'value': 15, 'num'： 2}, {'value': 12, 'num': 3}]}]}
+                }
+        }
+    },
+    'next_turn': {'p1': {'player_id': 'p1'}},            # 有多人可以操作，此时我们应该等待
+    'positionTable': {'0': 'previous': 3, 'next': 1, 'player_id': 'p1'},  # 方位数据, key是位置，player_id是该位置上的玩家id，next是下家，previous是上家
+}}
+
+3. 摸牌推送： mopaiPush
+数据:
+{'game': {  // 牌局数据
+    'players': {
+        'p1': {
+            'area_huanpai': [13],       # 缓牌区
+            'show_huanpai': True,       # 是否有缓牌
+            # 操作，同上条推送相同，不过多出来一个补杠。pai_bugang是补哪张牌，combinations_tao是目标套牌，combinations_new是补杠之后新的套牌组合。
+            'operations': {Operations.BUGANG: {'operate': Operations.BUGANG, 'source_player_id': 'p1',
+                       'selections': [{'combinations_new': [31, 32, 33, 34, 31], 'pai_bugang': 31,
+                                       'combinations_tao': [31, 32, 33, 34]}]}}
+        }
+    },
+    'next_turn': {'p1': {'player_id': 'p1'}},            # 有多人可以操作，此时我们应该等待
+    'positionTable': {'0': 'previous': 3, 'next': 1, 'player_id': 'p1'},  # 方位数据
+}
+
+4. 动作推送(特殊杠、暗杠、补杠、听，明杠、碰、吃，出牌)： actionPush
+出牌后动作推送数据：
+(1) A直接出牌不等待 + 下家摸牌(两次推送)：
+A. 
+{'game': {  // 牌局数据
+    'players': {
+        'p1': {
+            'area_huanpai': [13],       # 缓牌区
+            'area_gongxiang': [13],     # 共享牌区，也就是刚出的牌
+            'area_qipai': [],           # 弃牌区，出过得牌
+
+            'operations': {Operations.CHUPAI: {'operate': Operations.CHUPAI}}
+                                        # 操作，如 点炮，胡，听，杠，补杠，碰，吃。牌的来源玩家id，可以是自己，也可以是别人
+        }
+    },
+    'next_turn': {'p2': {'player_id': 'p2'}},            # 有多人可以操作，此时我们应该等待
+    }
+}
+(2) 别人有操作，需要等待。
+{'game': {  // 牌局数据
+        'players': {
+            'p0': {'position': 0,
+                'operations': {Operations.WAIT: {'operate': Operations.WAIT, 'combinations': [pai_chu], 'wait_operate': Operations.CHUPAI}}
+            }，
+            'p1': {'position': 1,
+                'operations': {Operations.GANG: {'operate': Operations.GANG, 'source_player_id': 'p0'}}
+            }，
+            'p2': {'position': 2,
+                'operations': {Operations.PENG: {'operate': Operations.PENG, 'source_player_id': 'p0'}}
+            }，
+            'p3': {'position': 3,
+                'operations': {Operations.CHI: {'operate': Operations.CHI, 'selections': [[1, 2, 3], [2, 3, 4]], 'source_player_id': 'p0'}}
+            }，
+        },
+        'next_turn': {'p0': {'player_id': 'p0', 'result': Operations.CHUPAI, 'priority': 8*10+0},
+            'p1': {'player_id': 'p1', 'max_priority': 3*10+1},
+            'p2': {'player_id': 'p2', 'max_priority': 4*10+2},
+            'p3': {'player_id': 'p3', 'max_priority': 6*10+3},
+            },            # 有多人可以操作，此时我们应该等待
+        }
+    }
+Operations.WAIT表示已经做了选择。选择'过'的，operations为{}没有数据。
+{'game': {  // 牌局数据
+        'players': {
+            'p0': {'position': 0,
+                'operations': {Operations.WAIT: {'operate': Operations.WAIT, 'wait_operate': Operations.BUGANG,
+                                                 'combinations': [31,32,33,34,31],
+                                                 'extra_info': {'pai_bugang': 31, 'combinations_tao': [31,32,33,34]}}}
+            }，
+            'p1': {'position': 1, operations': {}
+            }，
+            'p2': {'position': 2,
+                'operations': {Operations.WAIT: {'operate': Operations.WAIT, 'wait_operate': Operations.PENG,
+                                                 'source_player_id': source_player_id}}
+            }，
+            'p3': {'position': 3,
+                'operations': {Operations.WAIT: {'operate': Operations.WAIT, 'wait_operate': Operations.CHI,
+                                                 'source_player_id': source_player_id, 'combinations': [1, 2, 3]}}
+            }，
+        },
+        'next_turn': {'p0': {'player_id': 'p0', 'result': Operations.BUGANG, 'priority': 5*10+0},
+            'p1': {'player_id': 'p1', 'result': Operations.GUO, 'priority': 10*10+1},
+            'p2': {'player_id': 'p2', 'result': Operations.PENG, 'priority': 4*10+2},
+            'p3': {'player_id': 'p3', 'result': Operations.CHI, 'priority': 6*10+3},
+            },            # 有多人可以操作，此时我们应该等待
+        }
+    }
+
+(3) 杠碰吃成功后数据
+{'game': {  // 牌局数据
+        'players': {
+            'p1': {
+                'area_taopai': [{ combinations: [1,2,3], operate: 'chi', 'pai_class': 'an_gang'}],     # 套牌区
+                # 'area_taopai': [{ combinations: [1,1,1,1], operate: 'gang', 'pai_class': 'an_gang'}],     # 套牌区
+                # 'area_taopai': [{ combinations: [1,1,1], operate: 'peng', 'pai_class': 'peng'}],     # 套牌区
+            }
+        },
+        }
+    }
+
+
+
+各种数据结构：
+
+初始化玩家数据：
+data = {
+        'id': user_id, 'avatar': avatar, 'name': name, 'sex': sex, 'ip': ip,
+
+        'status': PlayerStatus.NOT_READY,       # 'notReady' 'ready', 'playing', 'quitGame',
+        'position': position,                   # 玩家的座次
+        'area_shoupai': [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],     # 万，1-9万的各自数量
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],     # 筒，1-9筒的各自数量
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],     # 条，1-9条的各自数量
+            [0, 0, 0, 0, 0, 0, 0, 0],           # 东南西北中发白的各自数量
+        ],                                      # 手牌区。横向列表中的下标0的值无意义，但不能为空，如area_shoupai[1][0]无意义
+        'area_huanpai': [],                     # 缓牌区
+        'area_taopai': [],                      # 套牌区
+        'area_gongxiang': [],                   # 共享牌区，也就是刚出的牌
+        'area_qipai': [],                       # 弃牌区，出过得牌
+        'area_hupai': None,                     # 胡牌，胡的哪张牌
+        'num_shoupai': 0,                       # 手牌数量
+        'show_huanpai': False,                  # 是否有缓牌
+
+        'ting_hupai': None,                     # 听牌以后，可以胡的牌。未听为None
+
+        'operations': {},                       # 操作，如 点炮，胡，听，杠，补杠，碰，吃, 出牌，出牌等待
+        'round_chupai': 0,                      # 出过几回合的牌，出牌一次+1
+
+        'prepare_status': False,                # 是否已准备
+        'max_lianzhuang': 0,                    # 最大连庄数
+        'cur_lianzhuang': 0,                    # 当前连庄数
+        'num_dianpao': 0,                       # 点炮次数
+        'points': ChangChunMJConf.INITIAL_POINTS,   # 当前积分，默认1000起
+        'real_points': 0,                       # 真实积分
+        'num_win': 0,                           # 获胜次数
+        'num_zhuang': 0,                        # 坐庄次数
+
+        'startedTime': 0,                       # 开始时间
+        'turnTime': 0,                          # 下次操作切换时间，暂时不知道有啥用
+    }
+
+初始化游戏数据：
+data = {
+        'game': {  # 牌局数据
+            'players': {
+                # str(player_id): get_player_initial_data(Orientation.DONG)
+            },
+            'status': GameStatus.PREPARING,  # 游戏状态
+            'difen': 0,
+            'onTurn': [],
+            'zhuang_jia': 0,  # 庄家位置
+            'previous_zhuangjia': -1,  # 上次的庄家位置
+            'sequence_quanshu': 0,  # 当前圈数
+            'sequence_bashu': 0,  # 当前把数
+            'start_dices': None,  # 开局摇到的骰子的点数
+            'pai_bao': {},          # 宝牌
+            'direction_position': 0,  # 当前指向位置
+            'wall_fapai': [],
+            'wall_pail_num': 0,
+            'positionTable': create_position_table(people_num),  # 方位数据
+            'totalTime': TURNTIME,  # 不知道什么用，先填上
+        },
+        'gameNum': 0
+    }
+
+
+
+
+
+
+
+
+
+总结构：
+{
+    'ip': 192.168.10.34,
+    'port': 7612,
+    'room': {  // 房间数据
+            'code': 746123,
+            'game': 'changchun_mj',
+            'rules': {
+                'mode': '',
+                'wanfa': 'changchun',       # 玩法长春麻将
+                'qushu': 8,                 # 可以玩几圈
+                'bashu': 24,                # 可以玩几把
+                'selected_wanfa': {'dianpao_bao_sanjia': True, 'xiaoji_feidan': True},      # 勾选特定玩法
+                'people_num': 4,            # 几人制
+                'time': 10,
+
+            }
+    },
+    'daikai': 'p100',
+    'game': {  // 牌局数据
+        'players': {
+            'p1': {
+                'id': user_id, 'avatar': avatar, 'name': name, 'sex': sex, 'ip': ip,
+                'status': 'ready', // 'notReady' 'ready', 'playing', 'quitGame',
+                'position': 1, // 玩家的座次
+                'point': 1,
+                'area_shoupai': [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # 万，0 + (1-9万的各自数量)
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # 筒，0 + (1-9筒的各自数量)
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],    # 条，0 + (1-9条的各自数量)
+                    [0, 0, 0, 0, 0, 0, 0, 0],          # 0 + (东南西北中发白的各自数量)
+                ],                          # 手牌区, 横向列表中的下标0的值无意义，但不能为空，如area_shoupai[1][0]无意义。
+                'area_huanpai': [13],       # 缓牌区
+                'area_taopai': [{ combinations: [1,2,3], operate: 'chi', 'pai_class': 'an_gang'}],     # 套牌区
+                'area_gongxiang': [13],     # 共享牌区，也就是刚出的牌
+                'area_qipai': [],           # 弃牌区，出过得牌
+                'area_hupai': 13,           # 胡牌，胡的哪张牌
+                'num_shoupai': 13,          # 手牌数量
+                'show_huanpai': True,       # 是否有缓牌
+
+                'ting_hupai': [13, 14],     # 听牌以后，可以胡的牌。未听为None
+
+                'operations': {Operations.CHI: {'operate': Operations.CHI, 'selections': [[1,2,3], [2,3,4]],
+                                                'source_player_id': 'p1'}},
+                                            # 操作，如 点炮，胡，听，杠，补杠，碰，吃。牌的来源玩家id，可以是自己，也可以是别人
+                # 'operations': {Operations.CHI: {'operate': Operations.BUGANG, 'source_player_id': 'p1',
+                #                'selections': [{'combinations_new': [31, 32, 33, 34, 31], 'pai_bugang': 31,
+                #                                'combinations_tao': [31, 32, 33, 34]}]}},
+                                            # 补杠操作
+                # 'operations': {Operations.WAIT: {'operate': Operations.WAIT, 'combinations': [1,2,3],
+                #                                  'extra_info': {'pai_bugang': 31, 'combinations_tao': [31, 32, 33, 34]},
+                #                                  'wait_operate': Operations.CHI, 'source_player_id': 'p1'}},
+                                            # 等待操作， 这个是比较特殊的。就是在等待，保留等待什么。如果是等待补杠，需要额外数据支持extra_info
+
+                'round_chupai': 0,          # 出过几回合的牌，出牌一次+1
+
+                'prepare_status': False,    # 是否已准备
+                'max_lianzhuang': 0,        # 最大连庄数
+                'cur_lianzhuang': 0,        # 当前连庄数
+                'num_dianpao': 0,           # 点炮次数
+                'points': 1000,             # 当前积分，默认1000起
+                'real_points': 0,           # 真实积分
+                'num_win': 0                # 获胜次数
+                'num_zhuang': 0,            # 坐庄次数
+
+                'startedTime': 0,           # 开始时间
+                'turnTime': 0,              # 下次操作切换时间，不知道有啥用
+            }
+        },
+        'status': GameStatus.PREPARING,  # 游戏状态
+        'difen': 0,
+        'next_turn': {'p1': {'player_id': 'p1', 'max_priority': 1,  # 有多人可以操作，此时我们应该等待。
+                        'result': 'minggang', 'priority': 1}},      # result表示玩家完成的操作选择,priority为操作优先级
+        'zhuang_jia': 0,  # 庄家位置
+        'previous_zhuangjia': -1,  # 上次的庄家位置
+        'sequence_quanshu': 0,  # 当前圈数
+        'sequence_bashu': 0,  # 当前把数
+        'start_dices': None,  # 开局摇到的骰子的点数
+        'pai_bao': {'value': 13, 'num_exposedpai': 2, 'order': 2},  # 宝牌，初始化为{}.num_exposedpai是出过几张牌了，order是宝牌的位置(从牌尾起第几位)
+        'direction_position': 0,  # 当前指向位置
+        'wall_fapai': [],
+        'wall_pail_num': 0,
+        'positionTable': {'0': 'previous': 3, 'next': 1, 'player_id': 'p1'},  # 方位数据
+        'totalTime': TURNTIME,  # 不知道什么用，先填上
+        'startedTime': 0,                       # 开始时间
+        'turnTime': 0,                          # 下次操作切换时间
+    },
+    'gameNum': 0
+
+}

@@ -1,3 +1,4 @@
+
 行军troop的状态和类型
 报名阶段：
 出发： status,100; type,100
@@ -11,7 +12,7 @@
 
 # 测试用接口
 start_expedition
-req['d']= [cooling_duration, apply_duration, pre_duration, fight_first_duration, fight_rest_duration, fight_second_duration, settlement_duration]
+req['d']= [cooling_duration, apply_duration, waitting_duration, pre_duration, fight_first_duration, fight_rest_duration, fight_second_duration]
 这个借口有两个作用：
 1.不管传参数与否，都会清理该玩家的报名队列，退还officer和units
 2.如果传参完整(7个参数)，重置跨服战各阶段时间，重新开启跨服战。
@@ -24,7 +25,7 @@ req['d']= [cooling_duration, apply_duration, pre_duration, fight_first_duration,
     "d": [0, {
     	'expedition_status': 1, 	# 0冷却,1报名,2准备,3战斗,4结算
     	'next_expedition_stage_time': 12312341241 	# 下一阶段时间
-        'expedition_apply_status': 0    # 0，未申请；1，已申请；2，参赛中
+        'expedition_apply_status': 0    # 0，未申请or被淘汰；1，已申请or已通过
     }]
 }
 
@@ -71,6 +72,9 @@ map_items = {
 	    'server_id': 1,
 	    'alliance_id': str(ObjectId()),
 	    'hp': 100,
+        'combat_power': 0,
+        'over_time': 0,
+        'facade': 0
 	},
     'type': PositionType.POSITION_TYPE_EXPEDITION_ALLIANCE, # int, 9
 }
@@ -96,6 +100,7 @@ my_alliance如果军团没报名，自然就没数据，就是None;如果军团�
 		    'alliance_num': expedition_obj['alliance_num'],
 		    # 战区服的服务器名称
 		    'war_server': expedition_obj['war_server_id'],
+            'war_server_name': expedition_obj['war_server_name'],
 		    # 下一阶段的开始时间
 		    'next_stage_time': Expedition.get_next_stage_time(),
 		    # 个人奖励，TODO：未定好数据格式
@@ -114,9 +119,10 @@ my_alliance如果军团没报名，自然就没数据，就是None;如果军团�
 		            'combat_power': applicants['combat_power']
 		        },
 		    # 个人是否已申请参赛. 0,未申请；1,已申请；2,参赛中
-		    # 'apply_status': apply_status 
+		    # 'apply_status': apply_status,
+            'period_num': self['period_num']
 		},
-        'expedition_apply_status': 0    # 0,未申请；1,已申请；2,参赛中
+        'expedition_apply_status': 0    # 0，未申请or被淘汰；1，已申请or已通过
     }]
 }
 
@@ -154,13 +160,29 @@ req['d']= [units, officer] 参考troop_send_to
 expedition_alliance_check_applicants
 查看军团已报名玩家部队
 {
-    'a': ActionName.ACTION_EXPEDITION_ALLIANCE_CHECK_APPLICANTS,
+    'a': 'expedition_alliance_check_applicants',
     'd': [0, {}, {
         'alliance_troops': troop_list,	# 部队信息, list
         'alliance_total_combat_power': total_combat_power, # 军团总战力, int
         'troops_count': troops_count	# 参战玩家数量, int
     }]
 }
+
+#
+expedition_last_result_rank
+上期个人和上期军团
+{
+    'a': expedition_last_result_rank,
+    'd': [0, {}, {
+        'server_info': record_data.get('server_info'),
+        'personal_rank': record_data.get('personal_rank'),
+        'alliance_rank': record_data.get('alliance_rank'),
+    }]
+}
+server_info = {'1': {'war_server_name': 'aa', 'war_server_id': 1, 'show_related_servers': [1, 2, 3]}
+alliance_rank = {'3': {'rank': rank, 'position': position, 'name': name, 'server_id': server_id, 'combat_power': combat_power, 'alliance_id': alliance_id, 'applicant_num': applicant_num}}
+personal_rank = {'3': {'name': name, 'server_id': server_id, 'rank': rank, 'combat_power': combat_power, 'player_id': player_id, 'expedition_battle_points': expedition_battle_points, }}
+
 
 Ex:
 'alliance_troops'= [
@@ -204,6 +226,17 @@ get_alliance_expedition_troop
 获取军团跨服战出兵舰队
 
 
+准备阶段：
+#
+expedition_alliance_facade_exchange
+变换外观
+req['d'] = [0]  # 传参int
+{
+    "a": 'expedition_alliance_facade_exchange',
+    "d": [0, {}, {
+        str(player['alliance_id']): alliance_pos.to_client_obj()
+    }]
+}
 
 
 战斗阶段：
@@ -312,6 +345,10 @@ expedition_alliances_info
     "a": 'expedition_alliances_info',
     "d": [0, {}, {
             alliance_pos['info']['alliance_id']: alliance_pos
+        }, {
+            'is_over': True,
+            'attacker_name': 'test1',
+            'defender_name': 'test2'
         }]
 }
 alliance_pos: {
@@ -324,6 +361,310 @@ alliance_pos: {
 	    'server_id': 1,
 	    'alliance_id': str(ObjectId()),
 	    'hp': 100,
+        'combat_power': 0,
+        'over_time': 0,
+        'facade': 0
 	},
     'type': PositionType.POSITION_TYPE_EXPEDITION_ALLIANCE, # int, 9
 }
+
+#
+settlement_after_finish_expedition_fight
+上半场结束，开始中场结算/下半场结束，最终结算
+{
+    "a": 'settlement_after_finish_expedition_fight',
+    "d": [0, {
+            "all_alliance_rank_list": all_alliance_rank_list,   # 全部军团现阶段排行
+            "final_contestant_num": 5   # 下半场参赛人数，最终结算没有这个字段
+        }]
+}
+all_alliance_rank_list = ['589be726aac6e06b95195a82', '589be726aac6e06b95195a83']
+
+#
+finish_expedition_player_status_changed
+报名结束计算参赛名单后，玩家参赛状态发生改变，通知
+{
+    "a": 'finish_expedition_player_status_changed',
+    "d": [0, {
+            "expedition_apply_status": 0    # 0，未申请or被淘汰；1，已申请or已通过
+        }]
+}
+
+#
+finish_expedition_all_excoin_changed
+远征金币变化通知
+{
+    "a": 'finish_expedition_all_excoin_changed',
+    "d": [0, player_dict]
+}
+
+#
+expedition_player_battle_log
+获取玩家上次的战报
+{
+    'a': 'expedition_player_battle_log',
+    'd': [0, {}, {
+        'battle_log': {
+            'player_id': user_id,
+            'result': result,
+            'time': now_time,
+            "offense_data": {
+                    "player_id": player_id,
+                    "units": units,
+                    "left": left,
+                    'officer': officer,
+                    'general_level': general_level,
+            },
+            "defense_data": {
+                    "player_id": player_id,
+                    "units": units,
+                    "left": left,
+                    'officer': officer,
+                    'general_level': general_level,
+            }
+        }}]
+}
+
+
+
+相关model:
+逻辑服上的
+ex_sessions                 # 跨服战玩家与战区服的socket连接,对应的session
+expedition                  # 跨服战的基础数据,所有服都有
+expedition_applicants       # 跨服战的所有报名军团数据,存于战区服
+expedition_battle_log       # 跨服战玩家上次战斗数据,存于战区服
+expedition_player           # 跨服战玩家的数据,兵、将等,存于战区服
+expedition_position         # 跨服战据点的对象数据
+expedition_result_record    # 所有服务器上期跨服战结果,所有服都存
+expedition_servers_info     # 服务器的机器数据ip等,所有服都存战区服的机器数据,战区服存所有服的机器数据
+expedition_troop            # 跨服战玩家的攻击队列
+主服上的
+expedition_record           # 所有服的上期跨服战结果
+
+
+关于合服：
+有两种，随便选。
+1.重新启动跨服战,那就没什么好保留的了。全部干掉。
+2.更新下数据，不重新启动
+跨服战的player_queue绝对不能删，保留下来。相关数据库 Expedition和ExpeditionResultRecord都保留。其他的相关model都可以删掉。
+合服结束以后，立刻在主服进行跨服战的更新跨服战数据的操作。
+
+
+
+关于主服上的跨服战操作:
+1.关闭跨服战
+    先决条件,当前必须是冷却阶段.移除逻辑服上的跨服战queue就ok.
+2.重启跨服战
+    先决条件,当前必须是冷却阶段.关闭跨服战,再启动跨服战.
+    ExpeditionResultRecord这个的数据不要管.ExpeditionServersInfo清除所有,重新添加.
+3.强制关闭跨服战
+    直接remove了跨服战相关的所有queue和troop.troop中的units和officer肯定是丢了.
+4.更新跨服战数据
+    先决条件,当前必须是冷却阶段.
+    ExpeditionServersInfo清除原来,重新添加.
+    Expedition需要看看有几条数据,合服后的会有多条.随意保留一条数据,必须要保留其中period_num字段,然后照规矩刷新一下数据就好.
+    ExpeditionResultRecord在合服后会有多条数据,随意保留一条数据就好.只要有一条数据,别的就都不用管了.
+    跨服战的player_queue在合服后会有多条,同样保留一条就好.
+
+
+
+关于上锁的地方:
+1.玩家主动发生状态变化 player_change_id玩家上锁
+2.部队修复完成 player_change_id玩家上锁
+3.玩家驻守时被攻击 player_change_id玩家上锁
+4.玩家攻击完回到家部队死光了 player_change_id玩家上锁
+5.更新本地服务器的参赛军团列表 update_local_excontestant_server_id服务器上锁
+6.初次报名成功修改战区服数据 create_exapplicants_alliance_id军团上锁
+7.替换报名队列修改战区服数据 create_exapplicants_alliance_id军团上锁
+8.正攻击敌方据点 attack_alliance_id敌方军团上锁
+
+
+获取跨服战信息,包括三个方面:活动介绍内容, 报名军团数据, 跟玩家自己相关的数据.
+alliance_expedition_battle_info
+1.活动介绍很直接,没什么好说的.
+2.报名军团数据,主要是在每次收到请求时判断时间,每隔一定时间同步战区服数据库的报名军团数据,时间由APPLICANTS_LIST_REFRESH_INTERVAL控制.
+3.玩家相关数据,最主要的就是当前状态.获取玩家跨服战状态: 0,未申请or被淘汰;1,已申请or已通过,同时兼具着同步战区服参赛军团列表数据到本地的重要任务.玩家的状态,会在报名结束后或结算结束时,收到状态变化的推送.
+
+
+玩家报名,只有所属军团报名了,团员才能报名.重要点:
+1.个人报名时,职位够高的玩家报名,就代表他的军团报名.军团未报名,普通成员无法报名.
+2.玩家报名,更新战区服的报名军团数据(人数/战力).替换报名队列,更新战区服的报名军团战力.
+3.队列报名和回家行军时间由EXPEDITION_APPLY_MARCH_TIME控制.可以替换报名队列,当前队列为待命,替换后新队列出发,老队列返回.报名队列在行军中无法替换队列.
+4.报名结束后,被淘汰的军团成员,其报名队列在得到结果后离开返回.
+
+
+跨服战战斗期,有3个状态,驻守,攻击,修复.队列有两种,攻击队列和修复队列
+关于状态变化:
+1.玩家状态更改时,玩家数据上锁,同时只能有一个操作状态.
+2.主动变化:玩家主动派出攻击队列时状态变攻击.玩家主动修复部队时状态变修复.
+被动变化:玩家被他人攻击至部队全部损失时状态自动变修复.玩家攻击他人结束回到家而且部队全部损失时状态自动变修复.
+关于驻守:
+1.玩家默认驻守状态,只有在驻守状态,玩家才能主动向攻击和修复状态转换.
+关于攻击:
+1.玩家发兵时,以及到达敌方,都要判断两点.自己家有没有爆掉,敌方有没有爆掉.
+关于修复:
+1.修兵只能一次性全修完
+2.修兵时间计算,是每个位置上的兵修复时间向上取整,最后所有位置相加.
+
+
+关于远征金币:
+1.实际金币的计算是通过all_excoin和cost_excoin来计算的.客户端显示使用的excoin字段,是在回应时计算所得.
+2.在本地服获得金币后,增加player的all_excoin的值.如果是跨服战进行时,将该all_excoin值同步给跨服战的ex_player的all_excoin.
+3.在跨服战期间每次消耗金币,都是修改ex_player的excoin值.
+4.结算远征金币的时候,取本地服player的all_excoin和战区服ex_player的cost_excoin,进行计算返还.
+5.跨服战在准备到下半场阶段之内,玩家都可以在购买或使用道具获得远征金币.
+
+
+关于据点:
+1.据点由4个点组成,需要说一下的就是info中的两个字段,hp和over_time.这两个字段用来排序的,和记录据点状况的.
+跨服战战斗时,hp<=0时,该据点淘汰,就是爆掉了,hp置为0,over_time记录爆掉的时间.
+上半场结束时,从活着的据点中,取前几名,具体数量是报名参赛军团的一半,被淘汰的据点,hp置为0,over_time为当前.
+
+
+关于各个阶段:
+冷却结束:
+1.更新跨服战的基本数据,建立其所有服与其战区服的mongo连接
+2.清除数据
+报名结束:
+1.玩家报名需保证当前战区服也处在报名阶段.so,报名结束时,先更改当前所处阶段.结束玩家报名.
+2.所有服通知玩家跨服战区ip地址等.
+战区服建立与所有服的连接,计算参赛成员,生成岛屿,生成跨服战player数据,记录参赛者数据,广播所有服去推送玩家参赛状态变化.
+等待阶段:
+1.所有服收到战区服的广播,推送玩家参赛状态变化,淘汰遣回的报名队列,不用结算远征金币.
+准备阶段:
+1.玩家开始进入据点,但不能发生战斗
+上半场结束:
+1.计算下半场参赛名单.参加下半场的部队全部恢复,血量全部回满.
+2.!!!在这里会直接删除掉跨服战所有的行军线和队列等,包括部队修复队列.
+下半场结束:
+1.!!!同样在这里会直接删除掉跨服战所有的行军线和队列等,包括部队修复队列.
+2.计算军团排行和个人排行,保存一下到expedition.将跨服战结果数据发给主服.
+3.广播所有服发奖励和结算金币.
+结算结束:
+1.关闭跨服战socket连接
+2.请求主服上跨服战所有服的上期结果
+
+
+关于发生战斗:
+1.防守队列为敌方军团当前驻守部队中的随机一只.
+这里有最多3次随机机会.因为可能出现随机到的部队,正好出发攻击,这里如果is_win是None,那就要重新随机.若最后还是无法随机到正确的,算攻方输,回家.
+如果没有驻守队列,那就太棒了,直接拿下,获胜回家.
+2.关于跨服战积分,只有发生战斗才会有积分.无驻守部队的情况,不会发生战斗,虽然敌方军团据点掉血,但是玩家自己是不会涨积分的.
+
+
+kibana:
+玩家报名'type': 'expedition_battle_apply_send_troop'
+
+玩家攻击'type': 'expedition_troop_send_to_log'
+队列加速'type': 'expedition_queue_speed_up_log'
+消耗远征金币'type': 'excoin_change_increase_cost_excoin'
+购买远征金币'type': 'excoin_change_increase_all_excoin'
+远征金币返还钻石'type': 'excoin_change_exchange_to_diamond'
+玩家部队攻击军团据点'type': 'expedition_battle_attack_alliance'
+发奖励'type': 'expedition_battle_award'  1.
+报名结束'type': 'finish_expedition_apply'
+上半场结束'type': 'finish_expedition_fight_first'
+下半场结束'type': 'finish_expedition_fight_second'  'source': 'expedition_result_rank'
+各服报名成功军团id'type': 'expedition_apply_result_list'
+
+
+
+
+错误码：    
+NEED_MORE_EXCOIN = 104
+意思：远征金币不足
+使用接口：expedition_queue_speed_up
+
+EXPEDITION_TROOP_EXISTS_AND_MARCHING = 5201 
+意思：已有报名队列
+使用接口：expedition_battle_apply
+
+EXPEDITION_PLAYER_CAN_NOT_ATTACK = 5202 
+意思：当前不是驻守状态，无法攻击
+使用接口：expedition_troop_send_to
+
+EXPEDITION_PLAYER_CAN_NOT_REPAIR = 5203 
+意思：当前不是驻守状态，无法修理
+使用接口：expedition_units_heal_all
+
+EXPEDITION_PLAYER_NO_NEED_REPAIR = 5204 
+意思：部队完整，不需要修复
+使用接口：expedition_units_heal_all
+
+EXPEDITION_NOT_APPLY_STAGE_NOW = 5205   
+意思：本服当前不是报名阶段，无法报名
+使用接口：expedition_battle_apply
+
+EXPEDITION_WAR_SERVER_NOT_APPLY_STAGE = 5206    
+意思：战区服已经不是报名阶段，报名已截止。
+使用接口：expedition_battle_apply
+
+EXPEDITION_ALLIANCE_NO_APPLY = 5207 
+意思：军团未报名
+使用接口：expedition_alliance_check_applicants
+
+EXPEDITION_PLAYER_DATA_IS_NONE = 5208   
+意思：战区服无该玩家数据，无法参战
+使用接口：auth_expedition_login
+
+EXPEDITION_CAN_NOT_ENTER_IN_CUR_STAGE = 5209    
+意思：当前阶段无法进入跨服战据点
+使用接口：auth_expedition_login
+
+EXPEDITION_IS_CALCULATING_CONTESTANT = 5210 
+意思：跨服战正在计算中，无法进入
+使用接口：auth_expedition_login
+
+EXPEDITION_PLAYER_NO_PERMISSION_FOR_ALLIANCE_APPLY = 5211   
+意思：玩家不能代表军团报名参加跨服战
+使用接口：expedition_battle_apply
+
+EXPEDITION_CAN_NOT_BATTLE_IN_CUR_STAGE = 5212   
+意思：当前阶段不能攻击
+使用接口：expedition_troop_send_to
+
+EXPEDITION_TROOP_TARGET_INVALID = 5213  
+意思：攻击目标不存在
+使用接口：expedition_troop_send_to
+
+EXPEDITION_TROOP_TARGET_IS_SELF = 5214  
+意思：攻击目标不能是自己
+使用接口：expedition_troop_send_to
+
+EXPEDITION_ALLIANCE_IS_DEAD = 5215  
+意思：攻击目标已经爆掉了
+使用接口：expedition_troop_send_to
+
+EXPEDITION_MY_ALLIANCE_DEAD = 5216  
+意思：自己的军团爆掉了
+使用接口：expedition_troop_send_to
+
+EXPEDITION_CAN_NOT_EXCHANGE_FACADE_IN_CUR_STAGE = 5217  
+意思：当前阶段不能更改外观
+使用接口：expedition_alliance_facade_exchange
+
+EXPEDITION_POSITION_NO_EXISTS = 5218    
+意思：自己的军团不存在，无法更改外观
+使用接口：expedition_alliance_facade_exchange
+
+EXPEDITION_POSITION_FACADE_VALUE_INVALID = 5219 
+意思：无效的外观值
+使用接口：expedition_alliance_facade_exchange
+
+EXPEDITION_NO_BATTLE_LOG = 5220 
+意思：玩家没有战斗日志
+使用接口：expedition_player_battle_log
+
+EXPEDITION_CAN_NOT_BUY_OR_USE_EXCOIN_ITEMS = 5221   
+意思：不能购买或者使用跨服金币
+使用接口：item_buy_and_use和item_buy和item_use
+
+EXPEDITION_CAN_NOT_QUIT_ALLIANCE_NOW = 5222
+意思：玩家已参加跨服战，不能离开军团
+使用接口：离开，被踢，解散军团
+
+ERR_ALLIANCE_AUTHORITY = 329
+意思：玩家无权限修改外观
+备注：这是原来就有的错误表。表示操作Alliance权限错误
+使用接口：expedition_alliance_facade_exchange
+
