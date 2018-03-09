@@ -267,7 +267,7 @@ data = {
             'rules': {
                 'mode': '',
                 'wanfa': 'changchun',       # 玩法长春麻将
-                'qushu': 8,                 # 可以玩几圈
+                'quanshu': 8,                 # 可以玩几圈
                 'bashu': 24,                # 可以玩几把
                 'selected_wanfa': {'dianpao_bao_sanjia': True, 'xiaoji_feidan': True},      # 勾选特定玩法
                 'people_num': 4,            # 几人制
