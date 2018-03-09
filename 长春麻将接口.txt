@@ -48,6 +48,17 @@ GANG_YAO = 'yao_gang'               # 幺蛋(杠), 首次出牌可杠，幺鸡+�
 GANG_JIU = 'jiu_gang'               # 九蛋(杠), 首次出牌可杠，九鸡+九饼+九万起杠，补一张九牌多算一个杠
 
 
+# 关于可选玩法
+SELECTIVE_GAMEPLAY = {
+    'Dianpao_Bao_SanJia': 'dianpao_bao_sanjia',     # 点炮包三家
+    'XiaoJi_FeiDan': 'xiaoji_feidan',               # 小鸡飞蛋
+    'San_FengDan': 'san_fengdan',                   # 三风蛋
+    'Dai_QueMen': 'dai_quemen',                     # 带缺门
+    'XiaDan_Suan_ZhanLi': 'xiadan_suan_zhanli',     # 下蛋算站立
+    'ChongBao_FanBei': 'chongbao_fanbei',           # 冲宝翻倍
+    'HaoQiDui_FanBei': 'haoqidui_fanbei'            # 豪七对翻倍
+}
+
 
 
 关于网络接口：
