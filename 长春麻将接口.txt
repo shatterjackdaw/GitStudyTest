@@ -337,6 +337,7 @@ data = {
                 'turnTime': 0,              # 下次操作切换时间，不知道有啥用
             }
         },
+        'over_operations': {'p1': {'operate': Operations.PENG, 'source_player_id': 'p2', 'pai': [1,2,3]},
         'status': GameStatus.PREPARING,  # 游戏状态
         'difen': 0,
         'next_turn': {'p1': {'player_id': 'p1', 'max_priority': 1,  # 有多人可以操作，此时我们应该等待。
