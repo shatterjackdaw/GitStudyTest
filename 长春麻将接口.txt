@@ -2,7 +2,10 @@
 配置：
 
 游戏状态(暂定,后面补齐)：
-'playing'   游戏中
+PREPARING = 'preparing'
+PLAYING = 'playing'
+TURN_END = 'turnEnd'
+GAME_END = 'gameEnd'
 
 玩家状态(暂定,后面补齐)：
 'notReady'  未准备
