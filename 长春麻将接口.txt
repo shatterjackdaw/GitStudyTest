@@ -313,7 +313,7 @@ data = {
                 'operations': {Operations.CHI: {'operate': Operations.CHI, 'selections': [[1,2,3], [2,3,4]],
                                                 'source_player_id': 'p1'}},
                                             # 操作，如 点炮，胡，听，杠，补杠，碰，吃。牌的来源玩家id，可以是自己，也可以是别人
-                # 'operations': {Operations.CHI: {'operate': Operations.BUGANG, 'source_player_id': 'p1',
+                # 'operations': {Operations.BUGANG: {'operate': Operations.BUGANG, 'source_player_id': 'p1',
                 #                'selections': [{'combinations_new': [31, 32, 33, 34, 31], 'pai_bugang': 31,
                 #                                'combinations_tao': [31, 32, 33, 34]}]}},
                                             # 补杠操作
