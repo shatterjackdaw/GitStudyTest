@@ -226,7 +226,7 @@ data = {
         'operations': {},                       # 操作，如 点炮，胡，听，杠，补杠，碰，吃, 出牌，出牌等待
         'round_chupai': 0,                      # 出过几回合的牌，出牌一次+1
 
-        'prepare_status': False,                # 是否已准备
+        'offline': False,                       # 是否离线
         'max_lianzhuang': 0,                    # 最大连庄数
         'cur_lianzhuang': 0,                    # 当前连庄数
         'num_dianpao': 0,                       # 点炮次数
@@ -327,7 +327,7 @@ data = {
 
                 'round_chupai': 0,          # 出过几回合的牌，出牌一次+1
 
-                'prepare_status': False,    # 是否已准备
+                'offline': False,           # 是否离线
                 'max_lianzhuang': 0,        # 最大连庄数
                 'cur_lianzhuang': 0,        # 当前连庄数
                 'num_dianpao': 0,           # 点炮次数
