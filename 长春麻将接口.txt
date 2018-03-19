@@ -2,7 +2,7 @@
 配置：
 
 游戏状态(暂定,后面补齐)：
-PREPARING = 'preparing'
+PREPARE = 'prepare'
 PLAYING = 'playing'
 TURN_END = 'turnEnd'
 GAME_END = 'gameEnd'
@@ -341,7 +341,7 @@ data = {
             }
         },
         'over_operations': {'p1': {'operate': Operations.PENG, 'source_player_id': 'p2', 'pai': [1,2,3]},
-        'status': GameStatus.PREPARING,  # 游戏状态
+        'status': GameStatus.PREPARE,  # 游戏状态
         'difen': 0,
         'next_turn': {'p1': {'player_id': 'p1', 'max_priority': 1,  # 有多人可以操作，此时我们应该等待。
                         'result': 'minggang', 'priority': 1}},      # result表示玩家完成的操作选择,priority为操作优先级
