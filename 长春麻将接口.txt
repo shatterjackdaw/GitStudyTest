@@ -100,7 +100,7 @@ SELECTIVE_GAMEPLAY = {
     'positionTable': {'0': 'previous': 3, 'next': 1, 'player_id': 'p1'},  # 方位数据, key是位置，player_id是该位置上的玩家id，next是下家，previous是上家
 }}
 
-3. 摸牌推送： mopaiPush
+3. 摸牌和碰杠后牌情变化推送： paiStatePush
 数据:
 {'game': {  // 牌局数据
     'players': {
@@ -195,6 +195,40 @@ Operations.WAIT表示已经做了选择。选择'过'的，operations为{}没有
             }
         },
         }
+    }
+
+5. 本局结束:turnEnd
+{
+    'statistic': {
+        # 每局结束时的结果
+        'turn_result': [{
+            'is_hu': False,     # 胡没
+            'fan_score': 0,     # 番型分
+            'gang_score': 0,    # 杠分
+            'total_score': 0,   # 总分
+            'sign': [],         # 标签，庄，自摸等
+            'id': o_id}],       # id
+    }
+}
+
+6. 结束房间: gameEnd
+'statistic': {
+        # 每局结束时的结果
+        'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
+        # 房间结束时的结果
+        'playerList': {
+            'p0': {
+                'id': o_id,
+                'name': o_player['name'],
+                'max_lianzhuang': o_player['max_lianzhuang'],   # 最大连庄数
+                'num_dianpao': o_player['num_dianpao'],         # 点炮次数
+                'points': o_player['real_points'],              # 真实积分
+                'num_win': o_player['num_win'],                 # 获胜次数
+                'num_zhuang': o_player['num_zhuang'],           # 坐庄次数
+            } 
+        },
+        'winner': 'p1',         # 赢家
+        'endedTime': time.time()
     }
 
 
@@ -359,6 +393,23 @@ data = {
         'startedTime': 0,                       # 开始时间
         'turnTime': 0,                          # 下次操作切换时间
     },
-    'gameNum': 0
+    'statistic': {
+        # 每局结束时的结果
+        'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
+        # 房间结束时的结果
+        'playerList': {
+            'p0': {
+                'id': o_id,
+                'name': o_player['name'],
+                'max_lianzhuang': o_player['max_lianzhuang'],   # 最大连庄数
+                'num_dianpao': o_player['num_dianpao'],         # 点炮次数
+                'points': o_player['real_points'],              # 真实积分
+                'num_win': o_player['num_win'],                 # 获胜次数
+                'num_zhuang': o_player['num_zhuang'],           # 坐庄次数
+            } 
+        },
+        'winner': 'p1',
+        'endedTime': time.time()
+    }
 
 }
