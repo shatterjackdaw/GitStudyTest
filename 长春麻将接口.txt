@@ -216,22 +216,19 @@ Operations.WAIT表示已经做了选择。选择'过'的，operations为{}没有
 
 5. 本局结束:turnEnd
 {
-    'statistic': {
+    'game': {...},
+    'turn_end': {
         # 每局结束时的结果
-        'turn_result': [{
-            'is_hu': False,     # 胡没
-            'fan_score': 0,     # 番型分
-            'gang_score': 0,    # 杠分
-            'total_score': 0,   # 总分
-            'sign': [],         # 标签，庄，自摸等
-            'id': o_id}],       # id
+        'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
+        'turn_hu_player': 'p1',
+        'turn_dianpao_player': 'p1',
     }
 }
 
 6. 结束房间: gameEnd
-'statistic': {
-        # 每局结束时的结果
-        'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
+{
+    'game': {...},
+    'statistic': {
         # 房间结束时的结果
         'playerList': {
             'p0': {
@@ -244,9 +241,10 @@ Operations.WAIT表示已经做了选择。选择'过'的，operations为{}没有
                 'num_zhuang': o_player['num_zhuang'],           # 坐庄次数
             } 
         },
-        'winner': 'p1',         # 赢家
+        'winner': 'p1',
         'endedTime': time.time()
     }
+}
 
 
 
@@ -411,9 +409,13 @@ data = {
         'startedTime': 0,                       # 开始时间
         'turnTime': 0,                          # 下次操作切换时间
     },
-    'statistic': {
+    'turn_end': {
         # 每局结束时的结果
         'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
+        'turn_hu_player': 'p1',
+        'turn_dianpao_player': 'p1',
+    },
+    'statistic': {
         # 房间结束时的结果
         'playerList': {
             'p0': {
