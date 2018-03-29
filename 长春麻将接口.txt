@@ -71,7 +71,7 @@ SELECTIVE_GAMEPLAY = {
 请求：
 
 1. 听牌： operateTing
-参数： req['d'] = [13]     # req['d'][0]为听哪张牌
+参数： 无。 
 2. 杠碰吃过： operateGangPengChiGuo
 参数： req['d'] = ['gang', [31, 32, 33, 34]]       # [0]为操作吃碰杠，[1]为所选择的牌型，暗杠和吃需要传参数，其他不需要
 3. 补杠： operateBugang
@@ -118,6 +118,23 @@ SELECTIVE_GAMEPLAY = {
 }
 
 4. 动作推送(特殊杠、暗杠、补杠、听，明杠、碰、吃，出牌)： actionPush
+听牌后的推送数据：
+{'game': {  // 牌局数据
+    'players': {
+        'p1': {
+            'area_huanpai': [13],       # 缓牌区
+            'area_gongxiang': [13],     # 共享牌区，也就是刚出的牌
+            'area_qipai': [],           # 弃牌区，出过得牌
+
+            'operations': {Operations.CHUPAI: {'operate': Operations.CHUPAI, 'selections': [{'pai_chu': 13, 'pai_hu': [{'value': 15, 'num'： 2}, {'value': 12, 'num': 3}]}]}}
+                                        # 听牌后，其下次的出牌操作中的selections，是听牌的相关数据.
+                                        # 出牌操作中有selections表明上一步必然是听牌
+        }
+    },
+    'next_turn': {'p2': {'player_id': 'p2'}},            # 有多人可以操作，此时我们应该等待
+    }
+}
+
 出牌后动作推送数据：
 (1) A直接出牌不等待 + 下家摸牌(两次推送)：
 A. 
@@ -346,7 +363,7 @@ data = {
                 'show_huanpai': True,       # 是否有缓牌
 
                 'is_tinged': True,          # 是否已经听牌
-                'ting_hupai': [13, 14],     # 听牌以后，可以胡的牌。未听为None
+                'ting_hupai': [13, 14],     # 听牌以后，可以胡的牌。听之后出牌，这里才有值；只听不出牌是没有值得
 
                 'operations': {Operations.CHI: {'operate': Operations.CHI, 'selections': [[1,2,3], [2,3,4]],
                                                 'source_player_id': 'p1'}},
