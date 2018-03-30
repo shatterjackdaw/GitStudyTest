@@ -63,6 +63,34 @@ SELECTIVE_GAMEPLAY = {
 }
 
 
+# 关于胡牌标签
+BASE_HUPAI = {
+    'pihu': 'pihu',             # 屁胡
+    'jiahu': 'jiahu',           # 夹胡
+    'piaohu': 'piaohu',         # 漂胡，也就碰碰胡
+    'qidui': 'qidui',           # 七小队
+    'hao_qidui': 'hao_qidui',   # 豪华七对
+    'shuanghao_qidui': 'shuanghao_qidui',   # 双豪华七对
+    'tophao_qidui': 'tophao_qidui',         # 至尊豪华七对
+    'zhuang': 'zhuang',         # 庄
+    'zimo': 'zimo',             # 自摸
+    'mobao': 'mobao',           # 摸宝
+    'zhanli': 'zhanli',         # 站立，(不开门)不吃不碰，默认幺/九/喜/旋风杠都算站立
+    'chongbao': 'chongbao',     # 冲宝，摸到宝牌，且宝牌正好是要胡的牌
+    'qingyise': 'qingyise',     # 清一色，需勾选缺门
+    'ming_da_gang': 'ming_da_gang',         # 幺鸡、幺饼、中发白的杠牌，为大蛋，也叫大杠。此为明大蛋
+    'an_da_gang': 'an_da_gang',             # 暗大蛋
+    'special_gang': 'special_gang',         # 幺/九/喜/旋风杠
+    'ming_gang': 'ming_gang',   # 明杠
+    'an_gang': 'an_gang',       # 暗杠
+}
+# 关于输牌标签
+BASE_LOSEPAI = {
+    'wei_tingpai': 'wei_tingpai',   # 未听牌
+    'dianpao': 'dianpao',  # 点炮
+}
+
+
 
 关于网络接口：
 
@@ -414,6 +442,8 @@ data = {
         'turn_result': [{'is_hu': False, 'fan_score': 0, 'gang_score': 0, 'total_score': 0, 'sign': [], 'id': o_id}],
         'turn_hu_player': 'p1',
         'turn_dianpao_player': 'p1',
+        'hu_type': 'mobao',
+        'is_liuju': False
     },
     'statistic': {
         # 房间结束时的结果
