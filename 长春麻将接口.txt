@@ -389,7 +389,8 @@ data = {
                 'show_huanpai': True,       # 是否有缓牌
 
                 'is_tinged': True,          # 是否已经听牌
-                'ting_hupai': [13, 14],     # 听牌以后，可以胡的牌。听之后出牌，这里才有值；只听不出牌是没有值得
+                'ting_hupai': {13: {'value': 13, 'num': 3}, 14: {'value': 14, 'num': 3}},     
+                # 听牌以后，可以胡的牌。听之后出牌，这里才有值；只听不出牌是没有值的
 
                 'operations': {Operations.CHI: {'operate': Operations.CHI, 'selections': [[1,2,3], [2,3,4]],
                                                 'source_player_id': 'p1'}},
