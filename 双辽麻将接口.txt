@@ -11,6 +11,8 @@ GAME_END = 'gameEnd'
 'notReady'  未准备
 'ready'     准备中
 
+剩余0张牌流局
+
 方位：东南西北
 DONG = 0
 NAN = 1
@@ -71,10 +73,6 @@ BASE_HUPAI = {
     'qianggang_hufan': 'qianggang_hufan',   # 抢杠胡番
     'dai_yaoji': 'dai_yaoji',   # 带幺鸡
     'gang_fan': 'gang_fan',     # 杠番
-    # 'ming_da_gang': 'ming_da_gang',  # 幺鸡、幺饼、幺万、红中的杠牌，为大杠。此为明大杠
-    # 'an_da_gang': 'an_da_gang',  # 暗大杠
-    # 'ming_gang': 'ming_gang',  # 明杠
-    # 'an_gang': 'an_gang',  # 暗杠
 }
 # 关于输牌标签
 BASE_LOSEPAI = {
@@ -260,6 +258,7 @@ Operations.WAIT表示已经做了选择。选择'过'的，operations为{}没有
                 'points': o_player['real_points'],              # 真实积分
                 'num_win': o_player['num_win'],                 # 获胜次数
                 'num_zhuang': o_player['num_zhuang'],           # 坐庄次数
+                'num_kaigang': o_player['num_kaigang'],         # 开杠次数
             } 
         },
         'winner': 'p1',
@@ -432,7 +431,6 @@ data = {
         'sequence_quanshu': 0,  # 当前圈数
         'sequence_bashu': 0,  # 当前把数
         'start_dices': None,  # 开局摇到的骰子的点数
-        'pai_bao': {'value': 13, 'num_exposedpai': 2, 'order': 2},  # 宝牌，初始化为{}.num_exposedpai是出过几张牌了，order是宝牌的位置(从牌尾起第几位)
         'direction_position': 0,  # 当前指向位置
         'wall_fapai': [],
         'wall_pail_num': 0,
