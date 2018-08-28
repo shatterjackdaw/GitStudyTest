@@ -290,7 +290,7 @@ data = {
         'num_shoupai': 0,                       # 手牌数量
         'show_huanpai': False,                  # 是否有缓牌
 
-        'ting_hupai': None,                     # 听牌以后，可以胡的牌。未听为None
+        'ting_hupai': {},                       # 听牌以后，可以胡的牌。未听为None
 
         'operations': {},                       # 操作，如 点炮，胡，听，杠，补杠，碰，吃, 出牌，出牌等待
         'round_chupai': 0,                      # 出过几回合的牌，出牌一次+1
